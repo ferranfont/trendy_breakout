@@ -2,6 +2,7 @@
 import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime
+from chart_volume import plot_close_and_volume
 import webbrowser
 import os
 
