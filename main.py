@@ -5,8 +5,8 @@ from chart_volume import plot_close_and_volume
 from isla import isla
 from isla_OM import order_managment
 
-media_period = 30
-slow_period = 200
+media_period = 200
+slow_period = 100
 
 # ========= DESCARGA Y FILTRO RÁPIDO =========
 directorio = '../DATA'

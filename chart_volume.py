@@ -44,7 +44,8 @@ def plot_close_and_volume(timeframe, df, trades_df):
         x=df['date'],
         y=df['ema_slow'],
         mode='lines',
-        line=dict(color='green', width=1),
+        #line=dict(color='green', width=1),
+        line=dict(color='rgba(46,204,113,0.4)', width=1),
         name='EMA',
         showlegend=True,
     ), row=1, col=1)

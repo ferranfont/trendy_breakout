@@ -5,9 +5,10 @@ from chart_volume import plot_close_and_volume
 from isla import isla
 from isla_OM import order_managment
 
-fecha = '2025-01-03'
-media_period = 30
-slow_period = 200
+#fecha = '2025-01-03'
+fecha = '2022-08-15'
+media_period = 200
+slow_period = 100
 
 # ========= DESCARGA Y FILTRO RÁPIDO =========
 directorio = '../DATA'
@@ -44,7 +45,8 @@ print(trigger_shorts[['date', 'close', 'ema', 'high', 'low', 'trigger']])
 print(f"Total de señales 'short' en el DataFrame: {len(trigger_shorts)}")
 
 print("\n======================== GESTIÓN DE ORDENES =====================")
-trades = order_managment(df=df)
+#trades = order_managment(df=df)                             # salida de stop por trailig stop o cantidad
+trades = order_managment(df, s=10, max_bars_in_trade=10)    # salida por tiempo máximo en trade o cantidad
 trades_df = pd.DataFrame(trades)
 print(trades_df)
 print(f"Total de trades: {len(trades_df)}")       
