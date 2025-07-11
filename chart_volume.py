@@ -39,6 +39,16 @@ def plot_close_and_volume(timeframe, df, trades_df):
         showlegend=True,
     ), row=1, col=1)
 
+        # ---- Línea EMA (azul) ----
+    fig.add_trace(go.Scatter(
+        x=df['date'],
+        y=df['ema_slow'],
+        mode='lines',
+        line=dict(color='green', width=1),
+        name='EMA',
+        showlegend=True,
+    ), row=1, col=1)
+
     # ---- Puntos rojos bajo la vela si trigger=='short' ----
     short_mask = df['trigger'] == 'short'
     if short_mask.any():

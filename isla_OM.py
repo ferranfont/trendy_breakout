@@ -1,12 +1,11 @@
-def order_managment(df, s=4):
+def order_managment(df, s=5):
     """
     Gestión de órdenes según trigger.
+    Solo entra si la hora es > 15:45.
     Target: 
       - LONG: dos velas seguidas con high < ema.
       - SHORT: dos velas seguidas con low > ema.
-    Stop loss (s puntos).
-    Guarda pnl_S = pnl*50 y time_in_market (en minutos).
-    Cuando va 5 puntos a favor, mueve stop a break even.
+    Stop loss (s puntos). Si va 5 puntos a favor, mueve el stop a break even.
     """
     trades = []
     position = None
@@ -16,28 +15,42 @@ def order_managment(df, s=4):
     above_ema_count = 0
     stop = None  # El stop dinámico
 
+    # Define hora límite en formato datetime.time
+    from datetime import time
+    entry_time_limit = time(15, 45)
+
     for i in range(len(df)):
-        # Entrada LONG
-        if position is None and df['trigger'].iloc[i] == 'long':
+        # Extrae la hora local de la vela actual
+        candle_time = df['date'].iloc[i].time() if hasattr(df['date'].iloc[i], 'time') else pd.to_datetime(df['date'].iloc[i]).time()
+        # Entrada LONG solo si hora > 15:45
+        if (
+            position is None
+            and df['trigger'].iloc[i] == 'long'
+            and candle_time > entry_time_limit
+        ):
             position = 'long'
             entry_index = i
             entry_price = df['close'].iloc[i]
             below_ema_count = 0
-            stop = entry_price - s  # Inicializa el stop normal
+            stop = entry_price - s
 
-        # Entrada SHORT
-        if position is None and df['trigger'].iloc[i] == 'short':
+        # Entrada SHORT solo si hora > 15:45
+        if (
+            position is None
+            and df['trigger'].iloc[i] == 'short'
+            and candle_time > entry_time_limit
+        ):
             position = 'short'
             entry_index = i
             entry_price = df['close'].iloc[i]
             above_ema_count = 0
-            stop = entry_price + s  # Inicializa el stop normal
+            stop = entry_price + s
 
         # ----------- LONG -----------
         if position == 'long':
             # MOVE STOP TO BREAK EVEN if price is 5+ in favor
-            if stop < entry_price and df['high'].iloc[i] >= entry_price + 20:
-                stop = entry_price  # Break even
+            if stop < entry_price and df['high'].iloc[i] >= entry_price + 25:
+                stop = entry_price
 
             # Stop loss (dynamic)
             if df['low'].iloc[i] <= stop:
@@ -93,8 +106,8 @@ def order_managment(df, s=4):
         # ----------- SHORT -----------
         if position == 'short':
             # MOVE STOP TO BREAK EVEN if price is 5+ in favor
-            if stop > entry_price and df['low'].iloc[i] <= entry_price - 20:
-                stop = entry_price  # Break even
+            if stop > entry_price and df['low'].iloc[i] <= entry_price - 25:
+                stop = entry_price
 
             # Stop loss (dynamic)
             if df['high'].iloc[i] >= stop:

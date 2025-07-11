@@ -5,8 +5,9 @@ from chart_volume import plot_close_and_volume
 from isla import isla
 from isla_OM import order_managment
 
-fecha = '2025-01-02'
-media_period = 20
+fecha = '2025-01-03'
+media_period = 30
+slow_period = 200
 
 # ========= DESCARGA Y FILTRO RÁPIDO =========
 directorio = '../DATA'
@@ -27,8 +28,10 @@ df = df[df['date'].str.startswith(fecha)]
 # Si ya tiene zona horaria:
 df['date'] = pd.to_datetime(df['date']).dt.tz_convert('UTC')
 
+print("\n================== GENERACIÓN DE MEDIAS  ==========================")
 df['ema'] = df['close'].ewm(span=media_period, adjust=False).mean().round(2)
 df['ema'] = df['ema'].shift(1)  # Desplazar la EMA para evitar el lookahead bias
+df['ema_slow'] = df['close'].ewm(span=slow_period, adjust=False).mean().round(2) 
 
 print('Fichero:', ruta_completa, 'importado')
 print(f"Características del DataFrame filtrado: {df.shape}")

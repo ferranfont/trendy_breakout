@@ -6,6 +6,7 @@ from isla import isla
 from isla_OM import order_managment
 
 media_period = 30
+slow_period = 200
 
 # ========= DESCARGA Y FILTRO RÁPIDO =========
 directorio = '../DATA'
@@ -44,6 +45,7 @@ for day in unique_dates:
     d['ema'] = d['close'].ewm(span=media_period, adjust=False).mean().round(2)
     d['ema'] = d['ema'].shift(1)
     d['trigger'] = isla(d)
+    df['ema_slow'] = df['close'].ewm(span=slow_period, adjust=False).mean().round(2) 
 
     trades = order_managment(df=d)
     trades_df = pd.DataFrame(trades)
