@@ -74,6 +74,25 @@ def plot_close_and_volume(timeframe, df, trades_df):
             showlegend=True
         ), row=1, col=1)
 
+    # ---- Líneas de Bollinger Bands ----
+    fig.add_trace(go.Scatter(
+        x=df['date'],
+        y=df['bb_upper'],
+        mode='lines',
+        line=dict(color='rgba(255,0,0,0.5)', width=1),
+        name='BB Upper',
+        showlegend=True,
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=df['date'],
+        y=df['bb_lower'],
+        mode='lines',
+        line=dict(color='rgba(0,160,0,0.5)', width=1),
+        name='BB Lower',
+        showlegend=True,
+    ), row=1, col=1)
+
+
     # ---- Añade operaciones de trades_df ----
     for _, row in trades_df.iterrows():
         color = 'grey' if row['side'] == 'long' else 'grey'

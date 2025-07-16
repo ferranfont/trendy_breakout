@@ -2,8 +2,13 @@
 import pandas as pd
 import os
 from chart_volume import plot_close_and_volume
-from isla import isla
-from isla_OM import order_managment
+import ta
+from isla import isla                            # genera las señales de entrada y les asigna un puntito verde o rojo
+#rom isla_OM import order_managment_A     
+#from isla_OM_bb import order_managment_bb       # salida por trailing stop o cantidad
+#from isla_OM_time import order_managment  
+#from inverse_isla_OM_bb import order_managment_inverse_isla_bb 
+from inverse_isla_OM import order_managment_A_inverse_limit     # salida por tiempo o cantidad
 
 media_period = 200
 slow_period = 100
@@ -44,33 +49,56 @@ for day in unique_dates:
 
     d['ema'] = d['close'].ewm(span=media_period, adjust=False).mean().round(2)
     d['ema'] = d['ema'].shift(1)
+    d['ema_slow'] = d['close'].ewm(span=slow_period, adjust=False).mean().round(2)
     d['trigger'] = isla(d)
-    df['ema_slow'] = df['close'].ewm(span=slow_period, adjust=False).mean().round(2) 
 
-    trades = order_managment(df=d)
+    bb = ta.volatility.BollingerBands(close=d['close'], window=20, window_dev=2)
+    d['bb_upper'] = bb.bollinger_hband()
+    d['bb_lower'] = bb.bollinger_lband()
+    d['bb_ma']    = bb.bollinger_mavg()
+
+    d          ['atr'] = ta.volatility.AverageTrueRange(
+    high=d['high'],
+    low=d['low'],
+    close=d['close'],
+    window=14
+    ).average_true_range().round(2)
+
+
+    # ====================== ESTRATEGIAS ====================
+    trades = order_managment_A_inverse_limit(df=d)  
+    #trades = order_managment_inverse_isla_bb(df=d)  
+    #trades = order_managment_bb(df=d)
+    #trades = order_managment_A(df=d)                                   # salida por trailing stop o cantidad
+    #trades = order_managment(d, s=4, max_bars_in_trade=3)             # salida por tiempo o cantidad
     trades_df = pd.DataFrame(trades)
 
     # Añade columna 'day' al DataFrame de trades para trazar luego si quieres
     if not trades_df.empty:
         trades_df['day'] = day
-
-        # Evita duplicados: si mismo entry_date ya existe en el CSV final, no lo añadas
+        # Evita duplicados: si mismo entry_date y exit_date ya existe en el CSV final, no lo añadas
         if not trades_full.empty:
             trades_df = trades_df[~trades_df['entry_date'].isin(trades_full['entry_date'])]
-
+        # Añade a variable acumulada en memoria para el resumen final
+        trades_full = pd.concat([trades_full, trades_df], ignore_index=True)
         # Añade al csv acumulado
         trades_df.to_csv(csv_path, mode='a', index=False, header=not os.path.exists(csv_path) or trades_full.empty)
         print(f"✅ Añadido {len(trades_df)} trades al CSV outputs/trades_results.csv")
-        
-        # Añade a variable acumulada en memoria para el resumen final
-        trades_full = pd.concat([trades_full, trades_df], ignore_index=True)
 
-# ---- RESUMEN FINAL DE TODOS LOS DÍAS ----
+# ==== LIMPIEZA Y CONTROL DE COLUMNAS PARA RESUMEN FINAL ====
 if not trades_full.empty:
     print("\n========== RESUMEN DE OPERATIVA ==========")
+    print("Columnas en trades_full:", trades_full.columns.tolist())
+    if 'pnl' not in trades_full.columns:
+        print("¡¡ERROR!! No existe la columna 'pnl' en trades_full")
+        print(trades_full.head())
+        exit(1)
+    # Si hay columnas de tipo 'Unnamed', elimínalas
+    trades_full = trades_full.loc[:, ~trades_full.columns.str.contains('^Unnamed')]
+
     total_trades = len(trades_full)
-    num_wins = ((trades_full['pnl'] > 0) & (trades_full['exit_type'] == 'target')).sum()
-    num_lost = ((trades_full['pnl'] < 0) | (trades_full['exit_type'] == 'stop')).sum()
+    num_wins = (trades_full['pnl'] > 0).sum()
+    num_lost = (trades_full['pnl'] < 0).sum()
     avg_win = trades_full.loc[trades_full['pnl'] > 0, 'pnl'].mean()
     avg_lost = trades_full.loc[trades_full['pnl'] < 0, 'pnl'].mean()
     success_rate = 100 * num_wins / total_trades if total_trades > 0 else 0
@@ -89,4 +117,3 @@ if not trades_full.empty:
     print(f"Tiempo medio en mercado (min): {avg_time:.1f}")
 else:
     print("No se generaron trades en ningún día.")
-

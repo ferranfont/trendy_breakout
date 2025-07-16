@@ -72,7 +72,7 @@ fig.update_layout(
     template='plotly_white',
     margin=dict(l=30, r=30, t=60, b=30),
     font=dict(size=14),
-    legend=dict(x=0.5, y=0.89)
+    legend=dict(x=0.5, y=0.29)
 )
 
 # Guarda y abre en navegador

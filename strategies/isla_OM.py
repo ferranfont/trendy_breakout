@@ -1,11 +1,11 @@
-def order_managment(df, s=5):
+def order_managment_A(df, s=4):
     """
     Gestión de órdenes según trigger.
-    Solo entra si la hora es > 10:45.
+    Solo entra si la hora está entre entry_time_limit y late_time_limit.
     Target: 
       - LONG: dos velas seguidas con high < ema.
       - SHORT: dos velas seguidas con low > ema.
-    Stop loss (s puntos). Si va 5 puntos a favor, mueve el stop a break even.
+    Stop loss (s puntos). Si va 10 puntos a favor, mueve el stop a break even.
     """
     trades = []
     position = None
@@ -15,18 +15,18 @@ def order_managment(df, s=5):
     above_ema_count = 0
     stop = None  # El stop dinámico
 
-    # Define hora límite en formato datetime.time
     from datetime import time
-    entry_time_limit = time(5, 45)
+    entry_time_limit = time(1, 30)
+    late_time_limit = time(7, 50)  # Por ejemplo, no entrar nuevas órdenes después de las 22:00
 
     for i in range(len(df)):
-        # Extrae la hora local de la vela actual
         candle_time = df['date'].iloc[i].time() if hasattr(df['date'].iloc[i], 'time') else pd.to_datetime(df['date'].iloc[i]).time()
-        # Entrada LONG solo si hora > 15:45
+        
+        # ---- ENTRADA LONG SOLO ENTRE LOS DOS LÍMITES DE HORA ----
         if (
             position is None
             and df['trigger'].iloc[i] == 'long'
-            and candle_time > entry_time_limit
+            and entry_time_limit < candle_time < late_time_limit
         ):
             position = 'long'
             entry_index = i
@@ -34,11 +34,11 @@ def order_managment(df, s=5):
             below_ema_count = 0
             stop = entry_price - s
 
-        # Entrada SHORT solo si hora > 15:45
+        # ---- ENTRADA SHORT SOLO ENTRE LOS DOS LÍMITES DE HORA ----
         if (
             position is None
             and df['trigger'].iloc[i] == 'short'
-            and candle_time > entry_time_limit
+            and entry_time_limit < candle_time < late_time_limit
         ):
             position = 'short'
             entry_index = i
@@ -46,13 +46,10 @@ def order_managment(df, s=5):
             above_ema_count = 0
             stop = entry_price + s
 
-        # ----------- LONG -----------
+        # ----------- LONG ----------- (lógica idéntica a la tuya)
         if position == 'long':
-            # MOVE STOP TO BREAK EVEN if price is 5+ in favor
-            if stop < entry_price and df['high'].iloc[i] >= entry_price + 3:
+            if stop < entry_price and df['high'].iloc[i] >= entry_price + 10:
                 stop = entry_price
-
-            # Stop loss (dynamic)
             if df['low'].iloc[i] <= stop:
                 pnl = stop - entry_price
                 trades.append({
@@ -69,13 +66,8 @@ def order_managment(df, s=5):
                     'time_in_market': (df['date'].iloc[i] - df['date'].iloc[entry_index]).total_seconds() / 60
                 })
                 position = None
-                entry_index = None
-                entry_price = None
-                below_ema_count = 0
-                stop = None
                 continue
 
-            # Target: 2 velas seguidas con high < ema
             if df['high'].iloc[i] < df['ema'].iloc[i]:
                 below_ema_count += 1
             else:
@@ -97,19 +89,12 @@ def order_managment(df, s=5):
                     'time_in_market': (df['date'].iloc[i] - df['date'].iloc[entry_index]).total_seconds() / 60
                 })
                 position = None
-                entry_index = None
-                entry_price = None
-                below_ema_count = 0
-                stop = None
                 continue
 
         # ----------- SHORT -----------
         if position == 'short':
-            # MOVE STOP TO BREAK EVEN if price is 5+ in favor
-            if stop > entry_price and df['low'].iloc[i] <= entry_price - 3:
+            if stop > entry_price and df['low'].iloc[i] <= entry_price - 10:
                 stop = entry_price
-
-            # Stop loss (dynamic)
             if df['high'].iloc[i] >= stop:
                 pnl = entry_price - stop
                 trades.append({
@@ -126,13 +111,8 @@ def order_managment(df, s=5):
                     'time_in_market': (df['date'].iloc[i] - df['date'].iloc[entry_index]).total_seconds() / 60
                 })
                 position = None
-                entry_index = None
-                entry_price = None
-                above_ema_count = 0
-                stop = None
                 continue
 
-            # Target: 2 velas seguidas con low > ema
             if df['low'].iloc[i] > df['ema'].iloc[i]:
                 above_ema_count += 1
             else:
@@ -154,10 +134,6 @@ def order_managment(df, s=5):
                     'time_in_market': (df['date'].iloc[i] - df['date'].iloc[entry_index]).total_seconds() / 60
                 })
                 position = None
-                entry_index = None
-                entry_price = None
-                above_ema_count = 0
-                stop = None
                 continue
 
     return trades
