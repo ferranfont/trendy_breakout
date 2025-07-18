@@ -14,7 +14,7 @@ from strategies.inverse_isla_OM import order_managment_A_inverse_limit      # ge
 
 
 # ======= PARÁMETROS =======
-fecha = '2022-11-03'
+fecha = '2022-11-02'
 media_period = 200
 slow_period = 100
 

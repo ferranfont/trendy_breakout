@@ -27,3 +27,4 @@ Conclusiones: En espacios temporales de 1 minuto o similar, es muy difícil que 
 Asimismo, ninguna de las variantes, una salida por tiempo, o un scalping al tocar las bandas de bollinger tampoco dan buenos resultados. Por lo tanto, se ha buscado entrar a la contra, es decir, entrar con la señal de la vela aislada (algo que en teoría tiene poca relevancia) a la contra usando la banda de bollinger
 
 
+En la carpeta outputs se genera el summary_by_day.csv analizable con el equity acumulado
