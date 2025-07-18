@@ -1,20 +1,39 @@
-# script que ejecuta una vela tendencial en la que se entra cuando tenemos una vela entera a favor de una media
 import pandas as pd
-from dotenv import load_dotenv
-from datetime import datetime
-from chart_volume import plot_close_and_volume
-import webbrowser
 import os
+from chart_volume import plot_close_and_volume
 
-# ====================================================
-# 📥 DESCARGA DE DATOS 
-# ====================================================
+# === CONFIGURACIÓN ===
+media_period = 200             # Periodo de la EMA
 directorio = '../DATA'
-nombre_fichero = 'export_es_2015_formatted.csv'
+nombre_fichero = 'GC_1D_2015.csv'
 ruta_completa = os.path.join(directorio, nombre_fichero)
-print("\n======================== 🔍 df  ===========================")
-df = pd.read_csv(ruta_completa)
-print('Fichero:', ruta_completa, 'importado')
-print(f"Características del Fichero Base: {df.shape}")
 
-print(df.head())
+# === CARGA Y FILTRO RÁPIDO ===
+cols = ['date', 'open', 'high', 'low', 'close', 'volume']
+df = pd.read_csv(ruta_completa, usecols=cols)
+df.columns = [c.lower().replace('volumen', 'volume') for c in df.columns]
+
+# Convertir columna de fecha a datetime y fijarla como índice (fundamental para resample)
+df['date'] = pd.to_datetime(df['date'], utc=True)
+df = df.set_index('date')
+
+# === RESAMPLE A VELAS DIARIAS (OHLCV) ===
+velas_diarias = df.resample('1D').agg({
+    'open': 'first',
+    'high': 'max',
+    'low': 'min',
+    'close': 'last',
+    'volume': 'sum'
+})
+
+# === CÁLCULO DE MEDIA MÓVIL EXPONENCIAL (EMA) ===
+velas_diarias['ema'] = velas_diarias['close'].ewm(span=media_period, adjust=False).mean().round(2)
+velas_diarias['ema'] = velas_diarias['ema'].shift(1)  # Evita lookahead bias
+
+
+print('Fichero:', ruta_completa, 'importado')
+print(f"Características del DataFrame diario: {velas_diarias.shape}")
+print(velas_diarias.head(3))
+
+# === GRAFICAR ===
+plot_close_and_volume(timeframe=1, df=velas_diarias.reset_index())

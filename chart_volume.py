@@ -1,19 +1,11 @@
-import os
-import pandas as pd
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-
-symbol = 'ES'
+import os
 
 def plot_close_and_volume(timeframe, df):
-    # Paths con SYMBOL y timeframe en el nombre
+    symbol = 'GC'
     html_path = f'charts/close_vol_chart_{symbol}_{timeframe}.html'
-    png_path = f'charts/close_vol_chart_{symbol}_{timeframe}.png'
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
-
-    df = df.rename(columns=str.lower)
-    df['date'] = pd.to_datetime(df['date'])
-    df = df.sort_values('date')
 
     fig = make_subplots(
         rows=2, cols=1,
@@ -22,8 +14,31 @@ def plot_close_and_volume(timeframe, df):
         vertical_spacing=0.03,
     )
 
+    # ---- Velas japonesas con borde negro ----
+    fig.add_trace(go.Candlestick(
+        x=df['date'],
+        open=df['open'],
+        high=df['high'],
+        low=df['low'],
+        close=df['close'],
+        name='OHLC',
+        increasing_line_color='green',
+        decreasing_line_color='red',
+        increasing_line_width=1,
+        decreasing_line_width=1,
+        showlegend=False,
+    ), row=1, col=1)
 
-    # Barras de volumen
+    # Línea EMA real (opcional, naranja)
+    fig.add_trace(go.Scatter(
+        x=df['date'],
+        y=df['ema'],
+        mode='lines',
+        line=dict(color='blue', width=1),
+        showlegend=True,
+    ), row=1, col=1)
+
+    # ---- Volumen ----
     fig.add_trace(go.Bar(
         x=df['date'],
         y=df['volume'],
@@ -36,19 +51,17 @@ def plot_close_and_volume(timeframe, df):
 
     fig.update_layout(
         dragmode='pan',
-        title=f'{symbol}_RTH_{timeframe}',
+        title=f'{symbol}_ETH_{timeframe}',
         width=1500,
-        height=700,
+        height=800,
         margin=dict(l=20, r=20, t=40, b=20),
         font=dict(size=12, color="black"),
-        plot_bgcolor='rgba(255,255,255,0.05)',
-        paper_bgcolor='rgba(240,240,240,0.1)',
+        plot_bgcolor='rgba(255,255,255,1)',
+        paper_bgcolor='rgba(255,255,255,1)',
         showlegend=False,
         template='plotly_white',
         xaxis=dict(
             type='date',
-            tickformat="%b %d<br>%Y",
-            tickangle=0,
             showgrid=False,
             linecolor='gray',
             linewidth=1,
@@ -57,7 +70,6 @@ def plot_close_and_volume(timeframe, df):
         yaxis=dict(showgrid=True, linecolor='gray', linewidth=1),
         xaxis2=dict(
             type='date',
-            tickformat="%b %d<br>%Y",
             tickangle=45,
             showgrid=False,
             linecolor='gray',
@@ -65,16 +77,20 @@ def plot_close_and_volume(timeframe, df):
             range=[df['date'].min(), df['date'].max()]
         ),
         yaxis2=dict(showgrid=True, linecolor='grey', linewidth=1),
-        shapes=shapes
+
+        # ==== Esta línea elimina el navegador intermedio ====
+        xaxis_rangeslider_visible=False,
+        xaxis2_rangeslider_visible=False,
     )
-    # Guarda HTML
-    fig.write_html(html_path, config={"scrollZoom": True})
+
+    # Elimina barra de navegación Plotly
+    config = {
+        "displayModeBar": False,
+        "scrollZoom": True
+    }
+
+    fig.write_html(html_path, config=config)
     print(f"✅ Gráfico Plotly guardado como HTML: '{html_path}'")
 
-    # Abre el HTML en el navegador por defecto
     import webbrowser
     webbrowser.open('file://' + os.path.realpath(html_path))
-
-
-
-
