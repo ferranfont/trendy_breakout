@@ -3,6 +3,7 @@
 import pandas as pd
 from chart_volume import plot_close_and_volume
 import plotly.graph_objects as go
+from breaks import breaks
 
 
 symbol = 'GC'
@@ -21,7 +22,13 @@ print("Archivo cargado:")
 print(df.head())
 print(df.info())
 
+
+# === APLICAR BREAKOUTS ===
+df = breaks(df)
+print(df)
+
 # === GRAFICAR VELAS DIARIAS Y VOLUMEN ===
 plot_close_and_volume(timeframe=timeframe, df=df, symbol=symbol)
 print(f"Gráfico de {symbol} en timeframe {timeframe} generado.")
+
 

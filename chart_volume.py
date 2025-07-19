@@ -1,6 +1,7 @@
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import os
+import os   # <-- aquí debe estar
+
 
 def plot_close_and_volume(timeframe, df, symbol):
     df = df.reset_index()
@@ -29,7 +30,31 @@ def plot_close_and_volume(timeframe, df, symbol):
         showlegend=False,
     ), row=1, col=1)
 
-    # Línea EMA real (opcional, naranja)
+    # ---- Puntos verdes en breakout ----
+    if 'breakout' in df.columns:
+        puntos_breakout = df[df['breakout']]
+        fig.add_trace(go.Scatter(
+            x=puntos_breakout['date'],
+            y=puntos_breakout['high']+2,
+            mode='markers',
+            marker=dict(color='green', size=5, symbol='circle'),
+            name='Breakout',
+            showlegend=False
+        ), row=1, col=1)
+
+    # ---- Puntos verdes en breakout ----
+    if 'breakdown' in df.columns:
+        puntos_breakdown = df[df['breakdown']]
+        fig.add_trace(go.Scatter(
+            x=puntos_breakdown['date'],
+            y=puntos_breakdown['low']-2,
+            mode='markers',
+            marker=dict(color='red', size=5, symbol='circle'),
+            name='Breakdown',
+            showlegend=False
+        ), row=1, col=1)
+
+    # Línea EMA real (opcional, azul)
     fig.add_trace(go.Scatter(
         x=df['date'],
         y=df['ema'],
@@ -83,7 +108,6 @@ def plot_close_and_volume(timeframe, df, symbol):
         xaxis2_rangeslider_visible=False,
     )
 
-    # Elimina barra de navegación Plotly
     config = {
         "displayModeBar": False,
         "scrollZoom": True
