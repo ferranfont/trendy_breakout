@@ -1,39 +1,26 @@
+#main
 import pandas as pd
-import os
 from chart_volume import plot_close_and_volume
+import plotly.graph_objects as go
 
-# === CONFIGURACIÓN ===
-media_period = 200             # Periodo de la EMA
-directorio = '../DATA'
-nombre_fichero = 'GC_1D_2015.csv'
-ruta_completa = os.path.join(directorio, nombre_fichero)
 
-# === CARGA Y FILTRO RÁPIDO ===
-cols = ['date', 'open', 'high', 'low', 'close', 'volume']
-df = pd.read_csv(ruta_completa, usecols=cols)
-df.columns = [c.lower().replace('volumen', 'volume') for c in df.columns]
+symbol = 'GC'
+timeframe = '1D'    
 
-# Convertir columna de fecha a datetime y fijarla como índice (fundamental para resample)
-df['date'] = pd.to_datetime(df['date'], utc=True)
+# === LECTURA DEL ARCHIVO DE VELAS DIARIAS ===
+ruta_archivo = '../DATA/GC_1D_2015.csv'
+
+# Cargar el CSV y parsear la columna 'date' como fecha
+df = pd.read_csv(ruta_archivo, parse_dates=['date'])
+
+# Asegurar que 'date' es índice tipo fecha
 df = df.set_index('date')
 
-# === RESAMPLE A VELAS DIARIAS (OHLCV) ===
-velas_diarias = df.resample('1D').agg({
-    'open': 'first',
-    'high': 'max',
-    'low': 'min',
-    'close': 'last',
-    'volume': 'sum'
-})
+print("Archivo cargado:")
+print(df.head())
+print(df.info())
 
-# === CÁLCULO DE MEDIA MÓVIL EXPONENCIAL (EMA) ===
-velas_diarias['ema'] = velas_diarias['close'].ewm(span=media_period, adjust=False).mean().round(2)
-velas_diarias['ema'] = velas_diarias['ema'].shift(1)  # Evita lookahead bias
+# === GRAFICAR VELAS DIARIAS Y VOLUMEN ===
+plot_close_and_volume(timeframe=timeframe, df=df, symbol=symbol)
+print(f"Gráfico de {symbol} en timeframe {timeframe} generado.")
 
-
-print('Fichero:', ruta_completa, 'importado')
-print(f"Características del DataFrame diario: {velas_diarias.shape}")
-print(velas_diarias.head(3))
-
-# === GRAFICAR ===
-plot_close_and_volume(timeframe=1, df=velas_diarias.reset_index())

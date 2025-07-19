@@ -2,8 +2,8 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 import os
 
-def plot_close_and_volume(timeframe, df):
-    symbol = 'GC'
+def plot_close_and_volume(timeframe, df, symbol):
+    df = df.reset_index()
     html_path = f'charts/close_vol_chart_{symbol}_{timeframe}.html'
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
 
