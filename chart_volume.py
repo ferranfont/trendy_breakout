@@ -106,10 +106,11 @@ def plot_close_and_volume(timeframe, df, symbol):
         # ==== Esta línea elimina el navegador intermedio ====
         xaxis_rangeslider_visible=False,
         xaxis2_rangeslider_visible=False,
+        
     )
 
     config = {
-        "displayModeBar": False,
+        "displayModeBar": True,
         "scrollZoom": True
     }
 
