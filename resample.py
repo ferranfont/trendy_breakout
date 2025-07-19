@@ -1,3 +1,5 @@
+# codigo auxiliar para resamplear datos de velas y entregar el instrumento en otro timeframe
+
 import pandas as pd
 import os
 from chart_volume import plot_close_and_volume

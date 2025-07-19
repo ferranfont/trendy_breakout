@@ -1,4 +1,5 @@
-#main
+# código que evalua si un producto es tendencial o mean-reversión enbase a su rendimiento al romper máximos y mínimos
+
 import pandas as pd
 from chart_volume import plot_close_and_volume
 import plotly.graph_objects as go
