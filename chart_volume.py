@@ -1,9 +1,9 @@
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import os   # <-- aquí debe estar
+import os
+import pandas as pd
 
-
-def plot_close_and_volume(timeframe, df, symbol):
+def plot_close_and_volume(timeframe, df, symbol, tracking_record=None):
     df = df.reset_index()
     html_path = f'charts/close_vol_chart_{symbol}_{timeframe}.html'
     os.makedirs(os.path.dirname(html_path), exist_ok=True)
@@ -15,7 +15,7 @@ def plot_close_and_volume(timeframe, df, symbol):
         vertical_spacing=0.03,
     )
 
-    # ---- Velas japonesas con borde negro ----
+    # ---- Velas japonesas ----
     fig.add_trace(go.Candlestick(
         x=df['date'],
         open=df['open'],
@@ -30,38 +30,87 @@ def plot_close_and_volume(timeframe, df, symbol):
         showlegend=False,
     ), row=1, col=1)
 
-    # ---- Puntos verdes en breakout ----
+    # ---- Breakout points ----
     if 'breakout' in df.columns:
         puntos_breakout = df[df['breakout']]
         fig.add_trace(go.Scatter(
             x=puntos_breakout['date'],
-            y=puntos_breakout['high']+2,
+            y=puntos_breakout['high'] + 2,
             mode='markers',
             marker=dict(color='green', size=5, symbol='circle'),
             name='Breakout',
             showlegend=False
         ), row=1, col=1)
 
-    # ---- Puntos verdes en breakout ----
+    # ---- Breakdown points ----
     if 'breakdown' in df.columns:
         puntos_breakdown = df[df['breakdown']]
         fig.add_trace(go.Scatter(
             x=puntos_breakdown['date'],
-            y=puntos_breakdown['low']-2,
+            y=puntos_breakdown['low'] - 2,
             mode='markers',
             marker=dict(color='red', size=5, symbol='circle'),
             name='Breakdown',
             showlegend=False
         ), row=1, col=1)
 
-    # Línea EMA real (opcional, azul)
+    # ---- EMA line (optional) ----
+    if 'ema' in df.columns:
+        fig.add_trace(go.Scatter(
+            x=df['date'],
+            y=df['ema'],
+            mode='lines',
+            line=dict(color='blue', width=1),
+            showlegend=True,
+            name="EMA"
+        ), row=1, col=1)
+
+    # ---- DONCHIAN CHANNEL ----
+    # Banda alta Donchian
     fig.add_trace(go.Scatter(
         x=df['date'],
-        y=df['ema'],
+        y=df['donchian_high'],
         mode='lines',
-        line=dict(color='blue', width=1),
-        showlegend=True,
+        line=dict(color='orange', width=1, dash='dot'),
+        name='Donchian High'
     ), row=1, col=1)
+
+    # Banda baja Donchian
+    fig.add_trace(go.Scatter(
+        x=df['date'],
+        y=df['donchian_low'],
+        mode='lines',
+        line=dict(color='purple', width=1, dash='dot'),
+        name='Donchian Low'
+    ), row=1, col=1)
+
+
+    # ---- TRADE LINES from tracking_record ----
+    if tracking_record is not None and not tracking_record.empty:
+        # Asegura que los tipos son correctos
+        tracking_record = tracking_record.dropna(subset=['entry_time', 'exit_time', 'entry_price', 'exit_price'])
+        tracking_record['entry_time'] = pd.to_datetime(tracking_record['entry_time'])
+        tracking_record['exit_time'] = pd.to_datetime(tracking_record['exit_time'])
+        for _, row in tracking_record.iterrows():
+            color = 'seagreen' if row['label'] == 'long' else 'firebrick'
+            # Línea discontinua
+            fig.add_trace(go.Scatter(
+                x=[row['entry_time'], row['exit_time']],
+                y=[row['entry_price'], row['exit_price']],
+                mode='lines',
+                line=dict(color=color, width=2, dash='dot'),
+                showlegend=False,
+                hoverinfo='skip'
+            ), row=1, col=1)
+            # Cuadrado en la salida
+            fig.add_trace(go.Scatter(
+                x=[row['exit_time']],
+                y=[row['exit_price']],
+                mode='markers',
+                marker=dict(color=color, size=9, symbol='square'),
+                name=f"Exit {row['label'].capitalize()}",
+                showlegend=False
+            ), row=1, col=1)
 
     # ---- Volumen ----
     fig.add_trace(go.Bar(
@@ -102,11 +151,8 @@ def plot_close_and_volume(timeframe, df, symbol):
             range=[df['date'].min(), df['date'].max()]
         ),
         yaxis2=dict(showgrid=True, linecolor='grey', linewidth=1),
-
-        # ==== Esta línea elimina el navegador intermedio ====
         xaxis_rangeslider_visible=False,
         xaxis2_rangeslider_visible=False,
-        
     )
 
     config = {
